@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-ingredients = ['Butterscotch', 'Cinnamon']
 test_input = '''Butterscotch: capacity -1, durability -2, flavor 6, texture 3, calories 8
 Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3'''
 real_input = '''Sprinkles: capacity 5, durability -1, flavor 0, texture 0, calories 5
