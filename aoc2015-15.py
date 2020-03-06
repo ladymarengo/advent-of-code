@@ -61,7 +61,7 @@ def counting_scores_from_amounts(amounts_list, ing_list):
             total_flavor += ing.flavor * amount
             total_texture += ing.texture * amount
             total_calories += ing.calories * amount
-        if len(list(filter(lambda x: x > 0, [total_capacity, total_durability, total_flavor, total_texture]))) < 4 or total_calories != 500:
+        if any(x <= 0 for x in [total_capacity, total_durability, total_flavor, total_texture]) or total_calories != 500:
             continue
         else:
             score = total_capacity * total_durability * total_flavor * total_texture
