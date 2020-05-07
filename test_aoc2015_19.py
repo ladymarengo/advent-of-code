@@ -9,4 +9,4 @@ HOH'''
 
     replacements, keys, molecule = aoc2015_19.make_input(test_input)
 
-    assert aoc2015_19.make_replacements(replacements, keys, molecule) == 4
+    assert aoc2015_19.making_full_molecule(replacements, keys, molecule) == 3
