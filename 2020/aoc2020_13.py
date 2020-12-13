@@ -11,10 +11,9 @@ def first_puzzle(text):
 def second_puzzle(text):
     instructions = text.split('\n')
     working_buses = [int(bus) for bus in instructions[1].split(',') if bus != 'x']
-    buses = instructions[1].split(',')
     timestamp_dict = {}
 
-    for e, bus in enumerate(buses):
+    for e, bus in enumerate(instructions[1].split(',')):
         if bus != 'x':
             timestamp_dict[int(bus)] = e
 
