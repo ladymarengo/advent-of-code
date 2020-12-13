@@ -1,6 +1,6 @@
 puzzle_input = open('aoc2020_13_input.txt').read().strip()
 
-def main(text):
+def first_puzzle(text):
     instructions = text.split('\n')
     timestamp = int(instructions[0])
     working_buses = [int(bus) for bus in instructions[1].split(',') if bus != 'x']
@@ -34,5 +34,5 @@ def second_puzzle(text):
     print(time)
 
 
-main(puzzle_input)
+first_puzzle(puzzle_input)
 second_puzzle(puzzle_input)
