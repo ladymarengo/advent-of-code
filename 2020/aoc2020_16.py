@@ -1,16 +1,16 @@
 import re
-import random
+from copy import deepcopy
 
 puzzle_input = open('aoc2020_16_input.txt').read().strip()
 
 
-def main(text):
+def main(text, length):
 
     def split_input(text):
         result = re.search(r'([\s\S]+)\s+your ticket:\s([0-9,]+)\s+nearby tickets:\s([0-9,\s]+)', text)
         return result.group(1).strip(), result.group(2).strip().split(','), result.group(3).strip().split('\n')
 
-    def make_rules(text):
+    def make_fields(text):
         fields_dict = {}
         for line in text.split('\n'):
             result = re.search(r'(.+): (\d+)-(\d+) or (\d+)-(\d+)', line)
@@ -19,20 +19,26 @@ def main(text):
         return fields_dict
 
     def check_tickets(ticket, fields):
-        invalid = False
         for value in ticket.split(','):
-            invalid = False
+            invalid = True
             for field in fields:
                 if ((int(value) >= field.min1 and int(value) <= field.max1) or (
                         int(value) >= field.min2 and int(value) <= field.max2)):
-                    invalid = True
-        return invalid
+                    invalid = False
+                    break
+            if invalid:
+                return False
+        return True
 
     rules, my_ticket, tickets = split_input(text)
-    fields = make_rules(rules)
+    fields = make_fields(rules)
     valid_tickets = [ticket for ticket in tickets if check_tickets(ticket, fields)]
-    # find_fields_information(fields, valid_tickets)
-    another_way(fields, valid_tickets)
+    result = find_solution(fields, valid_tickets, length)
+    multiply = 1
+    for x in result:
+        if 'departure' in x.name:
+            multiply = multiply * int(my_ticket[result[x]])
+    print(multiply)
 
 
 class Field():
@@ -43,21 +49,19 @@ class Field():
         self.min2 = min2
         self.max2 = max2
 
-# def find_fields_information(fields, tickets):
-#     ticket = [int(x) for x in tickets[0].split(',')]
-#     # print(ticket)
-#     for field in fields:
-#         fields[field] = set([(e, x) for e, x in enumerate(ticket)])
-#     # print(fields)
-#     fields = node_consistent(fields)
-#     # print(fields)
-#     result = backtrack(dict(), fields, tickets)
-#     print(result)
-#     for x in result:
-#         print(x.name, result[x])
+    def __eq__(self, other):
+        return self.name == other.name
 
-def another_way(fields, tickets):
+    def __hash__(self):
+        return hash(self.name)
+
+    def __repr__(self):
+        return f"Field({self.name})"
+
+
+def find_solution(fields, tickets, length):
     tickets_dict = {}
+
     for i, ticket in enumerate(tickets):
         int_ticket = [int(x) for x in ticket.split(',')]
         fields_dict = {}
@@ -67,128 +71,106 @@ def another_way(fields, tickets):
                 ticket_dict[e] = x
             fields_dict[field] = ticket_dict
         tickets_dict[i] = fields_dict
-    for ticket in tickets_dict:
-        tickets_dict[ticket] = another_node_consistent(tickets_dict[ticket])
-    # print(tickets_dict)
-    result = another_backtrack(dict(), fields, tickets_dict)
-    for x in result:
-        print(x.name, result[x])
 
-def consistance_another_way(value, var, tickets):
-    # print(tickets)
-    for ticket in tickets:
-        # print(value, tickets[ticket][var])
-        if not value in tickets[ticket][var]:
+    for ticket in tickets_dict:
+        tickets_dict[ticket] = node_consistent(tickets_dict[ticket])
+
+    result = backtrack(tickets_dict, dict(), fields, length)
+    return result
+
+
+def node_consistent(fields):
+    new_fields = {}
+    for field in fields:
+        new_list = []
+        for value in list(fields[field]):
+            if ((fields[field][value] >= field.min1 and fields[field][value] <= field.max1) or (
+                    fields[field][value] >= field.min2 and fields[field][value] <= field.max2)):
+                new_list.append(value)
+        new_fields[field] = new_list
+    return new_fields
+
+
+def order_domain_values(length, assignment):
+    values = list(range(int(length)))
+    if len(assignment) != 0:
+        for var in assignment:
+            values.remove(assignment[var])
+    return values
+
+
+def select_unassigned_variable(assignment, fields, tickets):
+    remaining_values = {}
+    for var in fields:
+        if not var in assignment:
+            sum = 0
+            for ticket in tickets:
+                sum += len(tickets[ticket][var])
+            remaining_values[sum] = var
+    return remaining_values[min(remaining_values)]
+
+
+def assignment_complete(assignment, fields):
+    for var in fields:
+        if not var in assignment:
             return False
     return True
 
-def another_backtrack(assignment, fields, tickets):
-    if len(assignment) == len(fields):
-        return assignment
-    var = [x for x in fields if not x in assignment][0]
-    for value in range(len(fields)):
-        if consistance_another_way(value, var, tickets):
-            assignment[var] = value
-            if consistent(assignment, value):
-                print('continue')
-                # print(assignment)
-                result = another_backtrack(assignment, fields, tickets)
-                if result != None:
-                    print('going back')
-                    return result
-            assignment.pop(var)
-    return None
 
-def another_node_consistent(fields):
-    for field in fields:
-        for value in list(fields[field]):
-            if not ((fields[field][value] >= field.min1 and fields[field][value] <= field.max1) or (
-                    fields[field][value] >= field.min2 and fields[field][value] <= field.max2)):
-                fields[field].pop(value)
-    return fields
+def revise(x, y, ticket, tickets):
+    new_x_list = [value for value in tickets[ticket][x] if set(tickets[ticket][y]) - {value}]
+    if len(new_x_list) != len(tickets[ticket][x]):
+        tickets[ticket][x] = new_x_list
+        return True
+    return False
 
-def consistent(assignment, value):
-    count = 0
-    for field in assignment:
-        if assignment[field] == value:
-            count += 1
-            if count > 1:
+
+def ac3(arcs, ticket, tickets):
+    while len(arcs) != 0:
+        (var, reference) = arcs.pop(0)
+        if revise(var, reference, ticket, tickets):
+            if len(tickets[ticket][var]) == 0:
                 return False
+            for neighbour in tickets[ticket]:
+                if neighbour != reference and neighbour != var:
+                    arcs.append((neighbour, var))
     return True
 
-# def node_consistent(fields):
-#     for field in fields:
-#         for value in list(fields[field]):
-#             if not ((value[1] >= field.min1 and value[1] <= field.max1) or (
-#                     value[1] >= field.min2 and value[1] <= field.max2)):
-#                 fields[field].remove(value)
-#     return fields
 
-# def invalid(index, field, ticket):
-#     value = int(ticket[index])
-#     print(value, field.min1, field.max1, field.min2, field.max2)
-#     if (value >= field.min1 and value <= field.max1) or (
-#                 value >= field.min2 and value <= field.max2):
-#         print('not invalid')
-#         return False
-#     print('invalid')
-#     return True
+def consistent(ticket, tickets, var):
+    arcs = []
+    for other_var in tickets[ticket]:
+        if var != other_var:
+            arcs.append((other_var, var))
+    if ac3(arcs, ticket, tickets):
+        return True
+    return False
 
 
-
-# def consistent_with_other_tickets(value, tickets, field):
-#     # for ticket in tickets:
-#     #     if invalid(value[0], field, ticket.split(',')):
-#     #         return False
-#     return True
-
-# def backtrack(assignment, fields, tickets):
-#     print(len(assignment))
-#     if len(assignment) == len(fields):
-#         return assignment
-#     var = random.choice([x for x in fields if not x in assignment])
-#     print(var.name)
-#     for value in fields[var]:
-#         print(value)
-#         if consistent_with_other_tickets(value, tickets, var):
-#             assignment[var] = value
-#             if consistent(assignment, value):
-#                 print('continue')
-#                 print(assignment)
-#                 result = backtrack(assignment, fields, tickets)
-#                 if result != None:
-#                     print('going back')
-#                     return result
-#             assignment.pop(var)
-#     return None
+def tickets_consistency(assignment, tickets, fields, var):
+    for ticket in tickets:
+        if not assignment[var] in tickets[ticket][var]:
+            return False
+        tickets[ticket][var] = [assignment[var]]
+        if not consistent(ticket, tickets, var):
+            return False
+    return True
 
 
-test_input = '''class: 1-3 or 5-7
-row: 6-11 or 33-44
-seat: 13-40 or 45-50
+def backtrack(tickets, assignment, fields, length):
+    if assignment_complete(assignment, fields):
+        return assignment
+    new_var = select_unassigned_variable(assignment, fields, tickets)
+    for value in order_domain_values(length, assignment):
+        previous_domain = deepcopy(tickets)
+        assignment[new_var] = value
+        if tickets_consistency(assignment, tickets, fields, new_var):
+            result = backtrack(tickets, assignment, fields, length)
+            if result != None:
+                return result
+        assignment.pop(new_var)
+        tickets = previous_domain
+    return None
 
-your ticket:
-7,1,14
 
-nearby tickets:
-7,3,47
-40,4,50
-55,2,20
-38,6,12'''
-
-test_input2 = '''class: 0-1 or 4-19
-row: 0-5 or 8-19
-seat: 0-13 or 16-19
-
-your ticket:
-11,12,13
-
-nearby tickets:
-3,9,18
-15,1,5
-5,14,9'''
-
-test_input3 = open('aoc2020_16_test_input.txt').read().strip()
-
-main(test_input3)
-# main(puzzle_input)
+main(puzzle_input, 20)
