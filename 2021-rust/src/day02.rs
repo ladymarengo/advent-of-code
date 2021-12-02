@@ -9,6 +9,7 @@ fn main() {
     let mut aim: i32 = 0;
     let mut position: i32 = 0;
     let re = Regex::new(r"(\w+) (\d+)").unwrap();
+    
     for line in instructions {
         let instruction = re.captures(&line).unwrap();
         let value = instruction.get(2).unwrap().as_str().parse::<i32>().unwrap();
@@ -28,5 +29,6 @@ fn main() {
             _ => println!("error"),
         }
     }
-    println!("Depth is {}, position is {}, first answer is {}\nDepth is {}, position is {}, second answer is {}", depth1, position, depth1 * position, depth2, position, depth2 * position);
+    
+    println!("First answer is {}\nSecond answer is {}", depth1 * position, depth2 * position);
 }
