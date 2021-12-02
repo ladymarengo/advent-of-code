@@ -3,7 +3,7 @@ use std::io::BufRead;
 use std::fs;
 
 fn main() {
-    let file = fs::File::open("input").expect("error");
+    let file = fs::File::open("input/01").expect("error");
     let buf = BufReader::new(file);
     let measurements: Vec<String> = buf.lines().map(|l| l.expect("error")).collect();
     println!("First answer is {}, second answer is {}", 
