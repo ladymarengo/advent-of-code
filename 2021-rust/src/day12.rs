@@ -19,14 +19,14 @@ fn parse_input() -> HashMap<String, Vec<String>> {
     let mut caves: HashMap<String, Vec<String>> = HashMap::new();
 
     for line in input {
-        if !caves.contains_key(&(line[0])) {
-            caves.insert(line[0].clone(), Vec::new());
-        }
-        caves.get_mut(&(line[0])).unwrap().push(line[1].clone());
-        if !caves.contains_key(&(line[1])) {
-            caves.insert(line[1].clone(), Vec::new());
-        }
-        caves.get_mut(&(line[1])).unwrap().push(line[0].clone());
+        caves
+            .entry(line[0].clone())
+            .or_default()
+            .push(line[1].clone());
+        caves
+            .entry(line[1].clone())
+            .or_default()
+            .push(line[0].clone());
     }
     caves
 }
@@ -40,7 +40,7 @@ fn solve(caves: HashMap<String, Vec<String>>, part: usize) -> usize {
 fn find_path(
     caves: &HashMap<String, Vec<String>>,
     path: Vec<String>,
-    cave: &String,
+    cave: &str,
     part: usize,
 ) -> usize {
     let mut total_paths: usize = 0;
@@ -49,7 +49,7 @@ fn find_path(
         let mut new_path = path.clone();
         new_path.push(way.clone());
         if check_path(&new_path, part) {
-            if *new_path.last().unwrap() == "end".to_string() {
+            if *new_path.last().unwrap() == "end" {
                 total_paths += 1;
             } else {
                 total_paths += find_path(caves, new_path, way, part);
@@ -59,7 +59,7 @@ fn find_path(
     total_paths
 }
 
-fn check_path(path: &Vec<String>, part: usize) -> bool {
+fn check_path(path: &[String], part: usize) -> bool {
     if part == 1 {
         for cave in path {
             if cave.chars().all(char::is_lowercase)
