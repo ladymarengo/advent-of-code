@@ -98,8 +98,8 @@ fn print_paper(dots: Vec<Dot>) {
         .map(|Dot(_, v)| v)
         .fold(0, std::cmp::max);
 
-    for x in 0..=x_max {
-        for y in 0..=y_max {
+    for y in 0..=y_max {
+        for x in 0..=x_max {
             if dots.contains(&Dot(x, y)) {
                 print!("#");
             } else {
