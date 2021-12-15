@@ -1,13 +1,13 @@
-use pathfinding::prelude::{absdiff, astar};
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
 fn main() {
     let input = parse_input();
     print!("First answer is ");
-    solve(&input);
+    a_star_search(&input);
     let new: Vec<Vec<u32>> = scale_map(&input);
     print!("Second answer is ");
-    solve(&new);
+    a_star_search(&new);
 }
 
 fn parse_input() -> Vec<Vec<u32>> {
@@ -16,44 +16,6 @@ fn parse_input() -> Vec<Vec<u32>> {
         .lines()
         .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u32).collect())
         .collect()
-}
-
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct Pos(i32, i32);
-
-impl Pos {
-    fn distance(&self, other: &Pos) -> u32 {
-        (absdiff(self.0, other.0) + absdiff(self.1, other.1)) as u32
-    }
-
-    fn successors(&self, graph: &Vec<Vec<u32>>) -> Vec<(Pos, u32)> {
-        let &Pos(x, y) = self;
-        let mut successors: Vec<(Pos, u32)> = vec![];
-        if x > 1 {
-            successors.push((Pos(x - 1, y), graph[y as usize][x as usize - 1]));
-        }
-        if y < graph.len() as i32 - 1 {
-            successors.push((Pos(x, y + 1), graph[y as usize + 1][x as usize]));
-        }
-        if y > 1 {
-            successors.push((Pos(x, y - 1), graph[y as usize - 1][x as usize]));
-        }
-        if x < graph[0].len() as i32 - 1 {
-            successors.push((Pos(x + 1, y), graph[y as usize][x as usize + 1]));
-        }
-        successors
-    }
-}
-
-fn solve(graph: &Vec<Vec<u32>>) {
-    let goal: Pos = Pos((graph.len() - 1) as i32, (graph[0].len() - 1) as i32);
-    let result = astar(
-        &Pos(0, 0),
-        |p| p.successors(graph),
-        |p| p.distance(&goal) / 3,
-        |p| *p == goal,
-    );
-    println!("{}", result.expect("no path found").1);
 }
 
 fn scale_map(graph: &Vec<Vec<u32>>) -> Vec<Vec<u32>> {
@@ -86,4 +48,98 @@ fn scale_map(graph: &Vec<Vec<u32>>) -> Vec<Vec<u32>> {
         }
     }
     new
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy, std::default::Default)]
+struct Pair(i32, i32);
+
+fn a_star_search(grid: &Vec<Vec<u32>>) {
+    let destination = Pair(grid.len() as i32 - 1, grid[0].len() as i32 - 1);
+    let start = Pair(0, 0);
+
+    let mut closed_list: Vec<Pair> = vec![];
+    let mut open_list: Vec<Pair> = vec![start];
+    let mut distances: HashMap<Pair, i32> = HashMap::new();
+    let mut parents: HashMap<Pair, Pair> = HashMap::new();
+
+    distances.insert(start.clone(), 0);
+    parents.insert(start.clone(), start.clone());
+
+    while !open_list.is_empty() {
+        let mut new: Option<Pair> = None;
+        for p in &open_list {
+            if new.is_none()
+                || distances[p] + heuristic(&Some(p.clone()), &destination)
+                    < distances[&new.unwrap()] + heuristic(&new, &destination)
+            {
+                new = Some(p.clone());
+            }
+        }
+
+        if new.unwrap() == destination {
+            calculate_cost(grid, parents, destination);
+            return;
+        } else {
+            for (neighbour, cost) in get_neighbours(&new.unwrap(), grid) {
+                if !open_list.contains(&neighbour) && !closed_list.contains(&neighbour) {
+                    open_list.push(neighbour.clone());
+                    parents.insert(neighbour.clone(), new.unwrap());
+                    distances.insert(neighbour.clone(), distances[&new.unwrap()] + cost as i32);
+                } else {
+                    if distances[&neighbour] > distances[&new.unwrap()] + cost as i32 {
+                        *distances.entry(neighbour).or_default() =
+                            *distances.entry(new.unwrap()).or_default() + cost as i32;
+                        *parents.entry(neighbour).or_default() =
+                            *parents.entry(new.unwrap()).or_default();
+
+                        if closed_list.contains(&neighbour) {
+                            closed_list.retain(|&x| x == neighbour);
+                            open_list.push(neighbour.clone());
+                        }
+                    }
+                }
+            }
+        }
+        open_list.retain(|&x| x != new.unwrap());
+        closed_list.push(new.unwrap());
+    }
+}
+
+fn is_valid(x: i32, y: i32, rows: usize, columns: usize) -> bool {
+    x >= 0 && y >= 0 && x < columns as i32 && y < rows as i32
+}
+
+fn heuristic(current: &Option<Pair>, destination: &Pair) -> i32 {
+    match current {
+        Some(p) => (destination.0 - p.0).abs() + (destination.1 - p.1).abs(),
+        None => 0,
+    }
+}
+
+fn get_neighbours(pair: &Pair, grid: &Vec<Vec<u32>>) -> Vec<(Pair, u32)> {
+    let to_check: Vec<(i32, i32)> = vec![(-1, 0), (1, 0), (0, -1), (0, 1)];
+    let mut neighbours: Vec<(Pair, u32)> = vec![];
+    for neighbour in to_check {
+        if is_valid(
+            pair.0 + neighbour.0,
+            pair.1 + neighbour.1,
+            grid.len(),
+            grid[0].len(),
+        ) {
+            neighbours.push((
+                Pair(pair.0 + neighbour.0, pair.1 + neighbour.1),
+                grid[(pair.1 + neighbour.1) as usize][(pair.0 + neighbour.0) as usize],
+            ));
+        }
+    }
+    neighbours
+}
+
+fn calculate_cost(grid: &Vec<Vec<u32>>, parents: HashMap<Pair, Pair>, mut destination: Pair) {
+    let mut cost: u32 = 0;
+    while parents[&destination] != destination {
+        cost += grid[destination.1 as usize][destination.0 as usize];
+        destination = parents[&destination];
+    }
+    println!("{}", cost);
 }
