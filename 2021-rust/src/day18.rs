@@ -1,5 +1,4 @@
 use std::fs::read_to_string;
-use std::str::FromStr;
 
 #[derive(Debug, Copy, Clone)]
 enum Symbol {
@@ -9,7 +8,7 @@ enum Symbol {
 }
 
 fn main() {
-    let mut input = parse_input();
+    let input = parse_input();
     println!("First answer is {}", part_one(input.clone()));
     println!("Second answer is {}", part_two(input));
 }
@@ -64,7 +63,7 @@ fn part_one(numbers: Vec<Vec<Symbol>>) -> i32 {
         if result.is_empty() {
             result = number.clone();
         } else {
-            result = add(&result, &number);
+            result = add(&result, number);
         }
     }
     count_magnitude(&result)
@@ -74,8 +73,7 @@ fn part_two(numbers: Vec<Vec<Symbol>>) -> i32 {
     let mut max_magnitude: i32 = 0;
     for number1 in &numbers {
         for number2 in &numbers {
-            let mut result: Vec<Symbol> = vec![];
-            result = add(&number1, &number2);
+            let result = add(number1, number2);
             let magnitude = count_magnitude(&result);
             if magnitude > max_magnitude {
                 max_magnitude = magnitude;
@@ -85,9 +83,8 @@ fn part_two(numbers: Vec<Vec<Symbol>>) -> i32 {
     max_magnitude
 }
 
-fn add(first: &Vec<Symbol>, second: &Vec<Symbol>) -> Vec<Symbol> {
-    let mut new: Vec<Symbol> = vec![];
-    new.push(Symbol::Open);
+fn add(first: &[Symbol], second: &[Symbol]) -> Vec<Symbol> {
+    let mut new: Vec<Symbol> = vec![Symbol::Open];
     new.extend_from_slice(first);
     new.extend_from_slice(second);
     new.push(Symbol::Close);
@@ -123,31 +120,23 @@ fn explode(number: &mut Vec<Symbol>) -> bool {
         false
     } else {
         let mut left: i32 = 0;
-        match number[index + 1] {
-            Symbol::Value(a) => left = a,
-            _ => (),
+        if let Symbol::Value(a) = number[index + 1] {
+            left = a
         }
         for i in (0..index).rev() {
-            match &mut number[i] {
-                Symbol::Value(n) => {
-                    *n += left;
-                    break;
-                }
-                _ => (),
+            if let Symbol::Value(n) = &mut number[i] {
+                *n += left;
+                break;
             }
         }
         let mut right: i32 = 0;
-        match number[index + 2] {
-            Symbol::Value(a) => right = a,
-            _ => (),
+        if let Symbol::Value(a) = number[index + 2] {
+            right = a
         }
-        for i in index + 4..number.len() {
-            match &mut number[i] {
-                Symbol::Value(n) => {
-                    *n += right;
-                    break;
-                }
-                _ => (),
+        for symbol in &mut number[index + 4..] {
+            if let Symbol::Value(n) = symbol {
+                *n += right;
+                break;
             }
         }
         for _i in 0..4 {
@@ -183,10 +172,10 @@ fn split(number: &mut Vec<Symbol>) -> bool {
     }
 }
 
-fn count_magnitude(number: &Vec<Symbol>) -> i32 {
+fn count_magnitude(number: &[Symbol]) -> i32 {
     let mut opened: usize = 1;
-    let mut left: i32 = 0;
-    let mut right: i32 = 0;
+    let left: i32;
+    let right: i32;
     let mut index: usize = 2;
     if let Symbol::Value(n) = number[1] {
         left = n;
