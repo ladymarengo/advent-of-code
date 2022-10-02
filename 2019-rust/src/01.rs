@@ -7,8 +7,11 @@ fn main() {
         .map(|l| l.parse().unwrap())
 		.collect();
 	
-	let sum: i32 = input.into_iter().map(calculate_fuel).sum();
-	println!("{sum}");
+	let sum: i32 = input.clone().into_iter().map(calculate_fuel).sum();
+	println!("part 1 {sum}");
+
+	let sum: i32 = input.into_iter().map(calculate_fuel_part2).sum();
+	println!("part 2 {sum}");
 }
 
 fn calculate_fuel(mass: i32) -> i32 {
@@ -16,7 +19,12 @@ fn calculate_fuel(mass: i32) -> i32 {
 }
 
 fn calculate_fuel_part2(mass: i32) -> i32 {
-    2
+    let fuel = calculate_fuel(mass);
+	if fuel <= 0 {
+		0
+	} else {
+		fuel + calculate_fuel_part2(fuel)
+	}
 }
 
 #[cfg(test)]
@@ -36,9 +44,9 @@ mod test {
     }
 
 	#[test_case(12, 2 ; "mass 12")]
-    // #[test_case(14, 2 ; "mass 14")]
-    // #[test_case(1969, 654 ; "mass 1969")]
-    // #[test_case(100756, 33583 ; "mass 100756")]
+    #[test_case(14, 2 ; "mass 14")]
+    #[test_case(1969, 966 ; "mass 1969")]
+    #[test_case(100756, 50346 ; "mass 100756")]
     fn test_calculate_fuel_part2(mass: i32, expected: i32) {
         let fuel = calculate_fuel_part2(mass);
 
