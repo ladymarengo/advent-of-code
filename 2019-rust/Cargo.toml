@@ -10,3 +10,6 @@ edition = "2021"
 [[bin]]
 name = "01"
 path = "src/01.rs"
+
+[dev-dependencies]
+test-case = "2.2.2"
