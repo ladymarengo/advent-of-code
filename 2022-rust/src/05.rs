@@ -9,7 +9,7 @@ fn main() {
     crates_input.lines().for_each(|l| {
         l.chars().enumerate().for_each(|(i, c)| {
             if c.is_alphabetic() && (i - 1) % 4 == 0 {
-                crates[(i - 1) / 4].push(c.clone());
+                crates[(i - 1) / 4].push(c);
             }
         })
     });
