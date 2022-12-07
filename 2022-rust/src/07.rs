@@ -11,7 +11,6 @@ fn main() {
         Item {
             item_type: ItemType::Directory,
             size: 0,
-            children: Vec::new(),
             parent: "".to_string(),
         },
     );
@@ -28,40 +27,24 @@ fn main() {
         } else if line[..3].eq("dir") {
             let name = format!("{}/{}", current, &line[4..]);
             filesystem.insert(
-                name.clone(),
+                name,
                 Item {
                     item_type: ItemType::Directory,
                     size: 0,
-                    children: Vec::new(),
                     parent: current.clone(),
                 },
             );
-            let dir = filesystem.entry(current.clone()).or_insert(Item {
-                item_type: ItemType::Directory,
-                size: 0,
-                children: Vec::new(),
-                parent: current.clone(),
-            });
-            dir.children.push(name);
         } else if !line[..1].eq("$") {
             let (size, name) = line.split_once(' ').unwrap();
             let name = format!("{}/{}", current.clone(), name);
             filesystem.insert(
-                name.clone(),
+                name,
                 Item {
                     item_type: ItemType::File,
                     size: size.parse::<usize>().unwrap(),
-                    children: Vec::new(),
                     parent: current.clone(),
                 },
             );
-            let dir = filesystem.entry(current.clone()).or_insert(Item {
-                item_type: ItemType::Directory,
-                size: 0,
-                children: Vec::new(),
-                parent: current.clone(),
-            });
-            dir.children.push(name);
             let mut parent = current.clone();
             while !parent.eq("") {
                 filesystem
@@ -69,7 +52,6 @@ fn main() {
                     .or_insert(Item {
                         item_type: ItemType::Directory,
                         size: 0,
-                        children: Vec::new(),
                         parent: "".to_string(),
                     })
                     .size += size.parse::<usize>().unwrap();
@@ -110,7 +92,6 @@ fn main() {
 struct Item {
     item_type: ItemType,
     size: usize,
-    children: Vec<String>,
     parent: String,
 }
 
