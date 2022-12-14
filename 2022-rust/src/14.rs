@@ -36,6 +36,7 @@ fn main() {
     println!("{}", solve(cave, sand));
 
     // Part two
+
     x = (min(x.0, 500 - y.1 - 3), max(x.1, 500 + y.1 + 3));
     cave = create_cave(&input, x, y);
     cave.push(vec![false; x.1 - x.0 + 1]);
@@ -92,7 +93,6 @@ fn fall_sand(cave: &mut [Vec<bool>], sand: (usize, usize)) -> bool {
             return false;
         } else if !cave[current.1 + 1][current.0 + 1] {
             current = (current.0 + 1, current.1 + 1);
-            continue;
         } else {
             cave[current.1][current.0] = true;
             return current != sand;
