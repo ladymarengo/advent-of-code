@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+regex = "1.10.2"
 
 [profile.release]
 debug = true
@@ -37,3 +38,7 @@ path = "src/06.rs"
 [[bin]]
 name = "07"
 path = "src/07.rs"
+
+[[bin]]
+name = "08"
+path = "src/08.rs"
