@@ -18,6 +18,7 @@ fn main() {
     });
 
     println!("First answer is {}", part_one(&network, &instructions));
+    println!("Second answer is {}", part_two(&network, &instructions));
 }
 
 fn part_one(network: &HashMap<String, (String, String)>, instructions: &[char]) -> usize {
@@ -38,4 +39,46 @@ fn part_one(network: &HashMap<String, (String, String)>, instructions: &[char]) 
         steps += 1;
     }
     steps
+}
+
+fn part_two(network: &HashMap<String, (String, String)>, instructions: &[char]) -> usize {
+    let mut current_nodes = Vec::new();
+    network.keys().for_each(|node| {
+        if node.chars().collect::<Vec<char>>()[2] == 'A' {
+            current_nodes.push(node)
+        }
+    });
+
+    let mut instr_index;
+    let mut steps: Vec<usize> = Vec::new();
+
+    for node in &mut current_nodes {
+        instr_index = 0;
+        let mut step = 0;
+        while node.chars().collect::<Vec<char>>()[2] != 'Z' {
+            match instructions[instr_index] {
+                'L' => *node = &network.get(*node).unwrap().0,
+                'R' => *node = &network.get(*node).unwrap().1,
+                _ => (),
+            }
+            instr_index += 1;
+            if instr_index == instructions.len() {
+                instr_index = 0;
+            }
+            step += 1;
+        }
+
+        steps.push(step);
+    }
+
+    let mut answer = 1;
+    steps.iter().for_each(|step| answer *= *step);
+
+    let min = *steps.iter().min().unwrap();
+    for i in (min..=answer).step_by(min) {
+        if steps.iter().all(|number| i % number == 0) {
+            return i;
+        }
+    }
+    0
 }
