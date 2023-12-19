@@ -1,14 +1,26 @@
-use std::{collections::HashMap, fs::read_to_string};
+use std::{
+    cmp::{max, min},
+    collections::HashMap,
+    fs::read_to_string,
+};
 
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Rule {
     category: char,
-    greater: bool,
+    greater: Comparison,
     number: usize,
     last: bool,
     next: String,
+}
+
+#[derive(Debug, Clone)]
+enum Comparison {
+    Greater,
+    GreaterOrEqual,
+    Less,
+    LessOrEqual,
 }
 
 #[derive(Debug)]
@@ -33,7 +45,7 @@ fn main() {
                 if rule_chars[rule_chars.len() - 1] == '}' {
                     Rule {
                         category: '.',
-                        greater: false,
+                        greater: Comparison::Greater,
                         number: 0,
                         last: true,
                         next: rule[..rule.len() - 1].to_string(),
@@ -42,7 +54,11 @@ fn main() {
                     let (first, second) = rule.split_once(':').unwrap();
                     Rule {
                         category: rule_chars[0],
-                        greater: rule_chars[1] == '>',
+                        greater: if rule_chars[1] == '>' {
+                            Comparison::Greater
+                        } else {
+                            Comparison::Less
+                        },
                         number: first[2..].parse::<usize>().unwrap(),
                         last: false,
                         next: second.to_string(),
@@ -85,8 +101,9 @@ fn main() {
                             _ => 0,
                         };
                         if match rule.greater {
-                            true => matching_number > rule.number,
-                            false => matching_number < rule.number,
+                            Comparison::Greater => matching_number > rule.number,
+                            Comparison::Less => matching_number < rule.number,
+                            _ => false,
                         } {
                             workflow = &rule.next;
                             break;
@@ -100,4 +117,72 @@ fn main() {
         .sum();
 
     println!("First answer is {result}");
+
+    let mut current_rules = Vec::new();
+    let result: i128 = count_accepted_combinations(&workflows, &mut current_rules, "in");
+    println!("Second answer is {result}");
+}
+
+fn count_accepted_combinations(
+    workflows: &HashMap<String, Vec<Rule>>,
+    current_rules: &mut Vec<Rule>,
+    workflow: &str,
+) -> i128 {
+    if workflow == "A" {
+        return calculate_combinations(current_rules);
+    } else if workflow == "R" {
+        return 0;
+    }
+
+    let mut combinations = 0;
+    let mut added_rules = 0;
+    for rule in workflows[workflow].iter() {
+        if rule.last {
+            combinations += count_accepted_combinations(workflows, current_rules, &rule.next);
+        } else {
+            let new_rule = rule.clone();
+            current_rules.push(new_rule);
+            combinations += count_accepted_combinations(workflows, current_rules, &rule.next);
+            let index = current_rules.len() - 1;
+            current_rules[index].greater = match current_rules[index].greater {
+                Comparison::Greater => Comparison::LessOrEqual,
+                Comparison::GreaterOrEqual => Comparison::Less,
+                Comparison::Less => Comparison::GreaterOrEqual,
+                Comparison::LessOrEqual => Comparison::Greater,
+            };
+            added_rules += 1;
+        }
+    }
+    for _i in 0..added_rules {
+        current_rules.pop();
+    }
+    combinations
+}
+
+fn calculate_combinations(current_rules: &[Rule]) -> i128 {
+    // dbg!(current_rules);
+    let mut x = (1, 4000);
+    let mut m = (1, 4000);
+    let mut a = (1, 4000);
+    let mut s = (1, 4000);
+    current_rules.iter().for_each(|rule| {
+        let changing_category = match rule.category {
+            'x' => &mut x,
+            'm' => &mut m,
+            'a' => &mut a,
+            _ => &mut s,
+        };
+        match rule.greater {
+            Comparison::Greater => changing_category.0 = max(changing_category.0, rule.number + 1),
+            Comparison::GreaterOrEqual => {
+                changing_category.0 = max(changing_category.0, rule.number)
+            }
+            Comparison::Less => changing_category.1 = min(changing_category.1, rule.number - 1),
+            Comparison::LessOrEqual => changing_category.1 = min(changing_category.1, rule.number),
+        }
+    });
+    (x.1 - x.0 + 1) as i128
+        * (m.1 - m.0 + 1) as i128
+        * (a.1 - a.0 + 1) as i128
+        * (s.1 - s.0 + 1) as i128
 }
