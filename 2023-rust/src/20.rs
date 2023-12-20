@@ -63,21 +63,62 @@ fn main() {
                     .entry(m)
                     .or_insert(PulseType::Low);
             } else {
-                modules[m].destinations.push(names.len() + 10);
+                names.push(dest.to_string());
+                modules[m].destinations.push(names.len() - 1);
             }
         });
     });
 
     let (mut low, mut high) = (0, 0);
-    for _i in 0..1000 {
-        let (new_low, new_high) = push_button(&mut modules, &names);
+    let rx_index = if let Some(pos) = names.iter().position(|name| name == "rx") {
+        pos
+    } else {
+        0
+    };
+    let rx_source = if let Some(pos) = modules
+        .iter()
+        .enumerate()
+        .find(|module| module.1.destinations.contains(&rx_index))
+    {
+        pos.0
+    } else {
+        0
+    };
+    let mut src_cycles: HashMap<usize, usize> = HashMap::new();
+    let mut cycle = 0;
+
+    loop {
+        cycle += 1;
+        let (new_low, new_high) =
+            push_button(&mut modules, &names, cycle, &mut src_cycles, rx_source);
         low += new_low;
         high += new_high;
+        if cycle == 1000 {
+            println!("First answer is {}", low * high);
+        }
+        if src_cycles.len() == modules[rx_source].recent_pulses.len() {
+            let min = *src_cycles.values().min().unwrap();
+            for i in 2..=min / 2 {
+                if src_cycles.values().all(|number| number % i == 0) {
+                    src_cycles.values_mut().for_each(|value| *value /= i);
+                }
+            }
+
+            let mut answer: usize = 1;
+            src_cycles.values().for_each(|value| answer *= *value);
+            println!("Second answer is {answer}");
+            break;
+        }
     }
-    println!("First answer is {}", low * high);
 }
 
-fn push_button(modules: &mut [Module], names: &[String]) -> (i32, i32) {
+fn push_button(
+    modules: &mut [Module],
+    names: &[String],
+    cycle: usize,
+    src_cycles: &mut HashMap<usize, usize>,
+    rx_source: usize,
+) -> (i32, i32) {
     let mut amount = (1, 0);
     let mut open_list: VecDeque<Pulse> = VecDeque::new();
     let broadcaster_index = names.iter().position(|name| name == "roadcaster").unwrap();
@@ -93,11 +134,20 @@ fn push_button(modules: &mut [Module], names: &[String]) -> (i32, i32) {
         });
 
     while let Some(pulse) = open_list.pop_front() {
+        if pulse.destination == rx_source
+            && pulse.pulse_type == PulseType::High
+            && !src_cycles.contains_key(&pulse.source)
+        {
+            src_cycles.insert(pulse.source, cycle);
+            if src_cycles.len() == modules[pulse.destination].recent_pulses.len() {
+                return (0, 0);
+            }
+        }
         match pulse.pulse_type {
             PulseType::High => amount.1 += 1,
             PulseType::Low => amount.0 += 1,
         }
-        if pulse.destination < names.len() {
+        if pulse.destination < modules.len() {
             let module = &mut modules[pulse.destination];
             let mut next_type = PulseType::Low;
             let mut send_pulse = true;
