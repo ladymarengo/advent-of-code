@@ -14,21 +14,17 @@ fn main() {
         .sum();
     println!("First answer is {result}");
 
-    let re = Regex::new(r"mul\(\d{1,3},\d{1,3}\)|do\(\)|don't\(\)").unwrap();
+    let re = Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)|(do\(\))|(don't\(\))").unwrap();
     let mut enabled = true;
     let mut result: i32 = 0;
     for cap in re.captures_iter(&input) {
-        let instruction = cap.get(0).unwrap().as_str();
-        match cap.get(0).unwrap().as_str() {
-            "do()" => enabled = true,
-            "don't()" => enabled = false,
-            _ => {
-                if enabled {
-                    let instr_re = Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)").unwrap();
-                    let caps = instr_re.captures(&instruction).unwrap();
-                    result += &caps[1].parse::<i32>().unwrap() * &caps[2].parse::<i32>().unwrap();
-                }
-            }
+        if cap.get(3).is_some() {
+            enabled = true;
+        } else if cap.get(4).is_some() {
+            enabled = false;
+        } else if enabled {
+            result += cap.get(1).unwrap().as_str().parse::<i32>().unwrap()
+                * cap.get(2).unwrap().as_str().parse::<i32>().unwrap();
         }
     }
     println!("Second answer is {result}");
