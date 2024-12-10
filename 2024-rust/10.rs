@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fs::read_to_string,
-};
+use std::{collections::HashMap, fs::read_to_string};
 
 fn main() {
     let input = read_to_string("input/10.txt").unwrap();
@@ -20,8 +17,8 @@ fn main() {
     grid.iter().enumerate().for_each(|(row, line)| {
         line.iter().enumerate().for_each(|(col, &height)| {
             if height == 0 {
-                result_part_one += count_score_part_two(&grid, row, col, false);
-                result_part_two += count_score_part_two(&grid, row, col, true);
+                result_part_one += count_score(&grid, row, col, false);
+                result_part_two += count_score(&grid, row, col, true);
             }
         })
     });
@@ -30,7 +27,7 @@ fn main() {
     println!("Second answer is {result_part_two}");
 }
 
-fn count_score_part_two(grid: &Vec<Vec<usize>>, row: usize, col: usize, part_two: bool) -> usize {
+fn count_score(grid: &Vec<Vec<usize>>, row: usize, col: usize, part_two: bool) -> usize {
     let mut heights_coords: HashMap<(usize, usize), usize> = HashMap::new();
     heights_coords.insert((row, col), 1);
     (0..9).for_each(|height| {
