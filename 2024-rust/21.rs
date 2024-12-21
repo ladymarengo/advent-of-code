@@ -3,7 +3,6 @@ use std::cmp::min;
 use std::collections::HashMap;
 use std::usize::MAX;
 
-// 10:30
 fn main() {
     let input = vec!["540A", "839A", "682A", "826A", "974A"];
     let num_keypad_input = "789\n456\n123\nX0A";
